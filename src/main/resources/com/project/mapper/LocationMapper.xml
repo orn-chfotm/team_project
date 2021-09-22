@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.project.mapper.LocationMapper">
+
+	<select id="getList" resultType="com.project.domain.LocationVO">
+		<![CDATA[
+		select location_num,name_1,name_2,facility_type,closed_days,is_pay,max_person,provider
+		from
+		(select /*+ INDEX_ASC(location pk_location) */ rownum rn,location_num,name_1,name_2,facility_type,
+		provider,space_area,max_person,weekdays_open,
+		weekdays_closed,weekend_open,weekend_closed,
+		use_time,apply_way,home_page,phone_num,
+		closed_days,is_pay 
+		from location 
+		where 
+		]]>
+		<trim prefix="(" suffix=")and" prefixOverrides="or">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="or">
+					<choose>
+						<when test="type=='S'.toString()">
+							provider like '%서울%'||#{keyword}||'%'
+						</when>
+						<when test="type=='G'.toString()">
+							provider like '%경기%'||#{keyword}||'%'
+						</when>
+						<when test="type=='J'.toString()">
+							provider like '%전라북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='N'.toString()">
+							provider like '%전라남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='C'.toString()">
+							provider like '%충청북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='D'.toString()">
+							provider like '%충청남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='W'.toString()">
+							provider like '%강원%'||#{keyword}||'%'
+						</when>
+						<when test="type=='P'.toString()">
+							provider like '%경상남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='K'.toString()">
+							provider like '%경상북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='B'.toString()">
+							provider like '%부산%'||#{keyword}||'%'
+						</when>
+						<when test="type=='E'.toString()">
+							provider like '%대구%'||#{keyword}||'%'
+						</when>
+						<when test="type=='I'.toString()">
+							provider like '%인천%'||#{keyword}||'%'
+						</when>
+						<when test="type=='Q'.toString()">
+							provider like '%광주%'||#{keyword}||'%'
+						</when>
+						<when test="type=='A'.toString()">
+							provider like '%대전%'||#{keyword}||'%'
+						</when>
+						<when test="type=='U'.toString()">
+							provider like '%울산%'||#{keyword}||'%'
+						</when>						
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+		<![CDATA[
+			rownum<=#{pageNum}*#{amount})
+			where rn>(#{pageNum}-1)*#{amount}
+		]]>
+	</select>
+	<select id="getCount" resultType="int">
+		<![CDATA[
+		select count(*) from location where 
+		]]>
+		<trim prefix="(" suffix=")and" prefixOverrides="or">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="or">
+					<choose>
+						<when test="type=='S'.toString()">
+							provider like '%서울%'||#{keyword}||'%'
+						</when>
+						<when test="type=='G'.toString()">
+							provider like '%경기%'||#{keyword}||'%'
+						</when>
+						<when test="type=='J'.toString()">
+							provider like '%전라북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='N'.toString()">
+							provider like '%전라남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='C'.toString()">
+							provider like '%충청북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='D'.toString()">
+							provider like '%충청남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='W'.toString()">
+							provider like '%강원%'||#{keyword}||'%'
+						</when>
+						<when test="type=='P'.toString()">
+							provider like '%경상남도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='K'.toString()">
+							provider like '%경상북도%'||#{keyword}||'%'
+						</when>
+						<when test="type=='B'.toString()">
+							provider like '%부산%'||#{keyword}||'%'
+						</when>
+						<when test="type=='E'.toString()">
+							provider like '%대구%'||#{keyword}||'%'
+						</when>
+						<when test="type=='I'.toString()">
+							provider like '%인천%'||#{keyword}||'%'
+						</when>
+						<when test="type=='Q'.toString()">
+							provider like '%광주%'||#{keyword}||'%'
+						</when>
+						<when test="type=='A'.toString()">
+							provider like '%대전%'||#{keyword}||'%'
+						</when>
+						<when test="type=='U'.toString()">
+							provider like '%울산%'||#{keyword}||'%'
+						</when>						
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+		<![CDATA[
+			location_num>0
+		]]>
+	</select>
+	<select id="getLocation" resultType="com.project.domain.LocationVO">
+		select * from location where location_num =#{location_num}
+	</select>
+	
+	<select id="getListAjax" resultType="com.project.domain.LocationVO">
+	<![CDATA[
+		select * from location where location_num>0
+	]]>
+	</select>
+	<select id="getReplyList" resultType="com.project.domain.LocationReplyVO">
+	<![CDATA[
+	 select reply_num,location_num,reply_content,regdate,user_id 
+	 from
+		 (select /*+ INDEX ASC(location_reply reply_num)*/rownum rn, reply_num,location_num,reply_content,to_char(regdate,'YYYY-MM-DD') as regdate,user_id from location_reply 
+	 	 where location_num = #{location_num}
+	 	 and rownum <=#{cri.pageNum} * #{cri.amount}
+		 order by regdate desc)
+	 where rn >(#{cri.pageNum}-1) * #{cri.amount}
+	]]>
+	</select>
+	<insert id="writeReply">
+		insert into location_reply values(seq_location_reply.nextval,#{user_id},#{location_num},#{reply_content},sysdate)
+	</insert>
+	<delete id="deleteReply">
+		delete from location_reply where location_num = #{location_num} and reply_num = #{reply_num}
+	</delete>
+	<update id="modifyReply">
+		update location_reply set reply_content=#{reply_content} ,regdate=sysdate where location_num = #{location_num} and reply_num=#{reply_num}
+	</update>
+	<select id="getCountByLocation" resultType="int">
+	<![CDATA[
+		select count(reply_num) from location_reply where location_num = #{location_num}
+	]]>
+	</select>
+</mapper>
+
