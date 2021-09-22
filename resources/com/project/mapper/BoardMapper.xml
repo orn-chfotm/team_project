@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.project.mapper.BoardMapper">
+	<insert id="insert">
+		<selectKey keyProperty="meet_num" order="BEFORE" resultType="String">
+			select MEETING_COUNT.nextval from dual
+		</selectKey>
+		
+		<![CDATA[
+			insert into meeting 
+			values(#{meet_num}, #{meet_type}, #{meet_location}, #{meet_regulation}, #{meet_title}, #{meet_content}, SYSDATE + 1, SYSDATE + 1, 'image', '1', #{meet_writer}, 0)
+		]]>
+	</insert>
+	<insert id="insertAttach">
+		<![CDATA[
+			insert into meeting_attach 
+			values(#{uuid}, #{upload_path}, #{file_name}, #{file_type}, #{meet_num})
+		]]>
+	</insert>
+	
+	<insert id="meetingselect">
+		<![CDATA[
+			insert into meet_select
+			values(#{user_id},#{meet_num})
+		]]>
+	</insert>
+	
+	<select id="list" resultType="com.project.domain.MeetingVO">
+		select *
+		from meeting
+	</select>
+	
+	<select id="listAttach" resultType="com.project.domain.BoardAttachVO">
+		select uuid, upload_path, file_name, meeting_attach.meet_num
+		from meeting_attach
+        join meeting
+		on meeting.meet_num = meeting_attach.meet_num
+        where ROWNUM = 1 and meeting.meet_num = #{meet_num}
+	</select>
+	
+	<select id="detail" resultType="com.project.domain.MeetingVO">
+		select *
+		from meeting 
+		where meet_num = #{meet_num}
+	</select>
+	
+	<select id="detailList" resultType="com.project.domain.MeetingVO">
+		select *
+		from meeting 
+		where meet_num != #{meet_num}
+	</select>
+	
+	<select id="selectcheck" resultType="int">
+		select case when count(*)> 0 then 1 else 0 end as result
+		from meet_select
+		where meet_num = #{meet_num}
+		and user_id = #{user_id}
+	</select>
+	
+	<delete id="selectdelete">
+		delete from meet_select
+		where meet_num = #{meet_num}
+		and user_id = #{user_id}
+	</delete>
+	
+	<select id="findByBno" resultType="com.project.domain.BoardAttachVO">
+		select *
+		from meeting_attach
+		where meet_num = #{meet_num}
+	</select>
+	
+	<select id="getTotal" resultType="int">
+		<![CDATA[
+		select count(*) from 
+		(
+		select * from meeting
+		]]>
+		<include refid="subject"></include>
+		<![CDATA[
+		)
+		where
+		]]>
+		<include refid="criteria"></include>
+		<![CDATA[
+		meet_num > 0
+		]]>
+	</select>
+	
+	<select id="getListWithPaging"
+		resultType="com.project.domain.MeetingVO">
+		<![CDATA[
+				select 
+					*
+			from(
+			    select MEET_NUM, MEET_TYPE, MEET_LOCATION, MEET_REGULATION, MEET_TITLE, MEET_CONTENT, MEET_DATE, rownum rn
+	    	    from (select * from meeting
+	    ]]>
+	    	    <include refid="subject"></include>
+	    <![CDATA[
+	    	    )
+			    where 
+		]]>
+		<include refid="criteria"></include>
+		<![CDATA[ 
+			    rownum <= #{pageNum} * #{amount}
+			    order by  meet_num desc
+			    )
+				where rn  > (#{pageNum}-1) * #{amount}
+					
+		]]>
+	</select>
+	<select id="getReplyList" resultType="com.project.domain.ReplyVO">
+		select reply_no,user_id,meet_num,reply_content,to_char(reply_date,'YYYY-MM-DD') reply_date from reply where meet_num=#{meet_num}
+	</select>	
+	<insert id="writeReply">
+		insert into reply values(MEETING_COUNT.nextval,#{user_id},#{meet_num},#{reply_content},sysdate)
+	</insert>
+	<delete id="deleteReply">
+		delete from reply where meet_num=#{meet_num} and reply_no =#{reply_no}
+	</delete>
+	<update id="modifyReply">
+		update reply set reply_content=#{reply_content} where meet_num=#{meet_num} and reply_no=#{reply_no} 	
+	</update>
+	<select id="getTotalReply" resultType="int">
+		select count(*) from reply where meet_num=#{no}
+	</select>
+	
+	<update id="update">
+ 		update meeting
+ 		set meet_title=#{meet_title}, meet_type=#{meet_type}, meet_location=#{meet_location}, meet_content=#{meet_content}
+ 		where meet_num = #{meet_num}
+ 	</update>
+ 	
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item='type' collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							meet_title like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'C'.toString()">
+							meet_content like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'W'.toString()">
+							user_id like '%'||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<sql id="subject">
+		<trim prefix=" where" suffix="">
+			<foreach item='subject' collection="subjectArr">
+				<choose>
+					<when test="subject ==''.toString()">
+						meet_type like '%'
+					</when>
+					<when test="subject == 'P'.toString()">
+						meet_type like '%'
+						order by meet_count desc
+					</when>
+					<when test="subject == 'S'.toString()">
+						meet_type like '%공부%'
+						order by MEET_NUM desc
+					</when>
+					<when test="subject == 'E'.toString()">
+						meet_type like '%운동%'
+						order by MEET_NUM desc
+					</when>
+					<when test="subject == 'C'.toString()">
+						meet_type like '%클래스%'
+						order by MEET_NUM desc
+					</when>
+					<when test="subject == 'H'.toString()">
+						meet_type like '%봉사%'
+						order by MEET_NUM desc
+					</when>
+				</choose>
+			</foreach>
+		</trim>
+	</sql> 
+	
+	<select id="gender" resultType="com.project.domain.GenderDTO">
+		select count(case when user_gender='남성' then user_id end)boy,
+        count(case when user_gender='여성' then user_id end) girl,
+        count(*) total
+		from user_member
+	</select> 
+	
+	<delete id="postDelete">
+		delete from meeting
+		where meet_num = #{meet_num} 
+		and meet_writer = #{meet_writer}
+	</delete>
+	
+	<update id="meetcounting">
+		update meeting
+		set meet_count = meet_count + 1
+		where meet_num = #{no}
+	</update>
+</mapper>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.project.mapper.QuestionMapper">
+
+	<select id="list" resultType="com.project.domain.QuestionVO">
+		select QUESTION_NO, USER_ID,
+		QUESTION_TITLE, QUESTION_CONTENT, QUESTION_TYPE,
+		to_char(QUESTION_DATE,'YYYY-MM-DD') as QUESTION_DATE
+		from question
+		order by QUESTION_NO DESC
+	</select>
+
+	<insert id="write">
+		insert into question
+		(question_no,question_type,question_title,user_id,question_content,question_date)
+		values(question_num.nextval,#{question_type},#{question_title},#{user_id},#{question_content},SYSDATE
+		+1)
+	</insert>
+
+	<update id="update">
+		update question
+		set question_title=#{question_title},
+		question_content=#{question_content},
+		question_type=#{question_type}
+		where question_no=#{question_no}
+	</update>
+
+	<delete id="delete">
+		delete
+		from question
+		where question_no=#{question_no}
+	</delete>
+
+
+	<select id="detail" resultType="com.project.domain.QuestionVO">
+		select * from question
+		where
+		question_no=#{no}
+	</select>
+
+	<select id="getTotal" resultType="int">
+		select count(*) from question
+		where
+		<include refid="criteria"></include>
+		question_no > 0
+	</select>
+
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item='type' collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							question_title like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'C'.toString()">
+							question_content like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'W'.toString()">
+							user_id like '%'||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+	<select id="getListWithPaging"
+		resultType="com.project.domain.QuestionVO">
+	<![CDATA[
+			select 
+				QUESTION_NO,
+		        USER_ID,
+		        QUESTION_TITLE,
+		        QUESTION_CONTENT,
+		        QUESTION_TYPE,
+		        QUESTION_DATE,
+		        CNT
+		from(
+		    select QUESTION_NO, USER_ID, QUESTION_TITLE, QUESTION_CONTENT, QUESTION_TYPE, QUESTION_DATE,CNT, rownum rn
+    	    from (select * from question order by QUESTION_NO desc)
+		    where 
+	]]>
+
+		<include refid="criteria"></include>
+		   
+	<![CDATA[ 
+		    rownum <= #{pageNum} * #{amount}
+		    order by  question_no desc
+		    )
+			where rn  > (#{pageNum} -1) * #{amount}
+				
+	]]>
+
+	</select>
+
+	<update id="cnt">
+		update question set cnt = cnt+ 1
+		where question_no =
+		#{question_no}
+	</update>
+
+	<!-- 댓글 입력 -->
+	<insert id="review">
+		insert into question_answer
+		values(answer_no.nextval, #{question_no}, #{answer_content}, SYSDATE + 1)
+	</insert>
+
+	<!-- 댓글 목록 -->
+	<select id="getAnswer"
+		resultType="com.project.domain.QuestionAnswerVO">
+		select *
+		from question_answer
+		where question_no = #{no}
+	</select>
+
+	<!-- 댓글 삭제  -->
+<delete id="answer_delete" >
+   delete from question_answer
+   where question_no = #{question_no} and content_no=#{content_no}
+</delete>
+<!-- 댓글 수정 -->
+<update id="answer_Update">
+	update question_answer set 
+	question_no = #{question_no},
+	content_no = #{content_no},
+	answer_content = #{answer_content}
+		where question_no = #{question_no} and content_no=#{content_no}
+</update>
+</mapper>
